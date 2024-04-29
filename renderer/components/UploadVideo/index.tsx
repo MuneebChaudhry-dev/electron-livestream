@@ -1,7 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import * as bodyPix from '@tensorflow-models/body-pix';
 
 const UploadVideo = () => {
   const [videoSrc, setVideoSrc] = useState(null);
+  const [backgroundRemovedSrc, setBackgroundRemovedSrc] = useState(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    if (videoSrc) {
+      const runBodyPix = async () => {
+        const net = await bodyPix.load();
+        const segmentation = await net.segmentPerson(videoRef.current);
+        const backgroundRemovedData = bodyPix.toMask(segmentation, {
+          r: 0,
+          g: 255,
+          b: 0,
+          a: 255,
+        });
+        const canvas = canvasRef.current;
+        const context = canvas.getContext('2d');
+        const imageData = context.createImageData(
+          backgroundRemovedData.width,
+          backgroundRemovedData.height
+        );
+        imageData.data.set(backgroundRemovedData.data);
+        context.putImageData(imageData, 0, 0);
+        const backgroundRemovedSrc = canvas.toDataURL('image/png');
+        setBackgroundRemovedSrc(backgroundRemovedSrc);
+      };
+      runBodyPix();
+    }
+  }, [videoSrc]);
 
   const selectAndShowVideo = (event) => {
     const file = event.target.files[0];
@@ -32,15 +62,28 @@ const UploadVideo = () => {
         </div>
         <div className='m-6'>
           {videoSrc ? (
-            <video controls className='max-w-full'>
-              <source src={videoSrc} type='video/mp4' />
-              Your browser does not support the video tag.
-            </video>
+            <div>
+              <video ref={videoRef} controls className='max-w-full'>
+                <source src={videoSrc} type='video/mp4' />
+                Your browser does not support the video tag.
+              </video>
+              {backgroundRemovedSrc && (
+                <div>
+                  <h2 className='text-white mt-4 mb-2'>Background Removed</h2>
+                  <img
+                    src={backgroundRemovedSrc}
+                    alt='Background Removed'
+                    className='max-w-full'
+                  />
+                </div>
+              )}
+            </div>
           ) : (
             <p className='text-white'>No video selected</p>
           )}
         </div>
       </div>
+      <canvas ref={canvasRef} className='hidden'></canvas>
     </div>
   );
 };
