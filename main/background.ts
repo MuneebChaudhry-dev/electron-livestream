@@ -1,40 +1,116 @@
-import path from 'path';
-import { app, ipcMain } from 'electron';
-import serve from 'electron-serve';
-import { createWindow } from './helpers';
+import { app, BrowserWindow } from 'electron';
+import * as path from 'path';
+import * as url from 'url';
+import express from 'express';
+import cors from 'cors';
+import * as child_process from 'child_process';
+import * as http from 'http';
+import * as socketIo from 'socket.io';
+import { ffmpeg2, youtubeSettings, inputSettings } from './helpers/ffmpeg';
 
 const isProd = process.env.NODE_ENV === 'production';
 
-if (isProd) {
-  serve({ directory: 'app' });
-} else {
-  app.setPath('userData', `${app.getPath('userData')} (development)`);
-}
+let mainWindow: Electron.BrowserWindow | null;
 
-(async () => {
-  await app.whenReady();
-
-  const mainWindow = createWindow('main', {
+function createMainWindow() {
+  mainWindow = new BrowserWindow({
     width: 1000,
     height: 600,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: true,
     },
   });
 
   if (isProd) {
-    await mainWindow.loadURL('app://./home');
+    mainWindow.loadURL(
+      url.format({
+        pathname: path.join(__dirname, 'index.html'),
+        protocol: 'file:',
+      })
+    );
   } else {
     const port = process.argv[2];
-    await mainWindow.loadURL(`http://localhost:${port}/home`);
+    mainWindow.loadURL(`http://localhost:${port}/`);
     mainWindow.webContents.openDevTools();
   }
-})();
 
-app.on('window-all-closed', () => {
-  app.quit();
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+}
+
+app.on('ready', () => {
+  createMainWindow();
 });
 
-ipcMain.on('message', async (event, arg) => {
-  event.reply('message', `${arg} World!`);
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
+
+app.on('activate', () => {
+  if (mainWindow === null) {
+    createMainWindow();
+  }
+});
+
+console.log(ffmpeg2);
+const appServer = express();
+appServer.use(cors());
+appServer.use(express.json({ limit: '200mb' }));
+appServer.use(
+  express.urlencoded({ limit: '200mb', extended: true, parameterLimit: 50000 })
+);
+
+appServer.get('/', (req: express.Request, res: express.Response) => {
+  res.send('Application works!');
+});
+
+const PORT = process.env.PORT || 5100;
+const WS_PORT: number = Number(process.env.PORT) || 3100;
+const server = http.createServer(appServer);
+const io = socketIo(server);
+
+io.on('connection', (socket) => {
+  console.log(`socket connected to ${socket.id}`);
+
+  const socketQueryParams = socket.handshake.query;
+  const youtubeDestinationUrl = `rtmp://y.rtmp.youtube.com/live2/r6z4-zsyu-gz01-1m01-ed0w`;
+
+  const ffmpegInput = inputSettings.concat(
+    youtubeSettings(youtubeDestinationUrl)
+  );
+
+  const ffmpeg = child_process.spawn('ffmpeg', ffmpegInput);
+
+  ffmpeg.on('close', (code: any, signal: any) => {
+    console.log(
+      'FFmpeg child process closed, code ' + code + ', signal ' + signal
+    );
+    socket.emit('error', 'FFmpeg process closed');
+  });
+
+  ffmpeg.stdin.on('error', (e: any) => {
+    console.log('FFmpeg STDIN Error', e);
+    socket.emit('error', 'FFmpeg STDIN error');
+  });
+
+  ffmpeg.stderr.on('data', (data: any) => {
+    console.log('FFmpeg STDERR:', data.toString());
+  });
+
+  socket.on('message', (msg: any) => {
+    console.log('DATA', msg);
+    ffmpeg.stdin.write(msg);
+  });
+
+  socket.conn.on('close', () => {
+    console.log('kill: SIGINT');
+    ffmpeg.kill('SIGINT');
+  });
+});
+
+server.listen(PORT, () => {
+  console.log('Application started on port ', PORT);
 });
