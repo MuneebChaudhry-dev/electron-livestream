@@ -10,7 +10,7 @@ function LiveStreamComponent() {
   });
   const [stream, setStream] = useState<MediaStream>();
 
-  const recorderInit = () => {
+  const startStreaming = () => {
     let liveStream = (videoRef.current as any).captureStream(30);
 
     let mediaRecorder = new MediaRecorder(liveStream!, {
@@ -70,7 +70,12 @@ function LiveStreamComponent() {
           playsInline
           muted={true}
         />
-        <button onClick={recorderInit}>init</button>
+        <button
+          className=' border-1 border-red-300 rounded bg-gray-50 text-gray-900 mt-10'
+          onClick={startStreaming}
+        >
+          Start Streaming
+        </button>
       </header>
     </div>
   );
