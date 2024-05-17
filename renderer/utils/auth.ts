@@ -15,7 +15,7 @@ export const getAuthUrl = () => {
   });
 };
 
-export const getTokens = async (code) => {
+export const getTokens = async (code: string) => {
   const { tokens } = await OAuth2Client.getToken(code);
   return tokens;
 };
