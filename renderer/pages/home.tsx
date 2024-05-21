@@ -58,6 +58,7 @@ export default function HomePage() {
       const data = await response.json();
 
       if (response.ok) {
+        console.log('Stream DAta', data);
         setLiveStreamInfo(data);
         await fetch('http://localhost:5100/api/update-stream-details', {
           // Update to match your Express server address
@@ -68,11 +69,32 @@ export default function HomePage() {
           body: JSON.stringify({
             url: data.ingestionInfo.ingestionAddress,
             key: data.ingestionInfo.streamName,
+            broadcastId: data.broadcastId,
+            accessToken: tokens.access_token,
           }),
         });
       } else {
         console.error('Failed to start live stream:', data.error);
       }
+    }
+  };
+  const goLive = async () => {
+    if (liveStreamInfo) {
+      const response = await fetch('http://localhost:5100/api/go-live', {
+        // Update to match your Express server address
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: liveStreamInfo.ingestionInfo.ingestionAddress,
+          key: liveStreamInfo.ingestionInfo.streamName,
+          broadcastId: liveStreamInfo.broadcastId,
+          accessToken: liveStreamInfo.access_token,
+        }),
+      });
+      const data = await response.json();
+      console.log('GO Live DAta', data);
     }
   };
 
@@ -89,7 +111,12 @@ export default function HomePage() {
       </div>
       <div className='mt-1 w-full flex-wrap flex justify-center'>
         <button onClick={startLiveStream} disabled={!tokens}>
-          Start Live Stream
+          Start BroadCasting
+        </button>
+      </div>
+      <div className='mt-1 w-full flex-wrap flex justify-center'>
+        <button onClick={goLive} disabled={!tokens}>
+          Go Live!
         </button>
       </div>
       <div>
