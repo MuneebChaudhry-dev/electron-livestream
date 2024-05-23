@@ -80,7 +80,7 @@ export default function HomePage() {
   };
   const goLive = async () => {
     if (liveStreamInfo) {
-      const response = await fetch('http://localhost:5100/api/go-live', {
+      const response = await fetch('/api/go-live', {
         // Update to match your Express server address
         method: 'POST',
         headers: {
@@ -90,7 +90,7 @@ export default function HomePage() {
           url: liveStreamInfo.ingestionInfo.ingestionAddress,
           key: liveStreamInfo.ingestionInfo.streamName,
           broadcastId: liveStreamInfo.broadcastId,
-          accessToken: liveStreamInfo.access_token,
+          accessToken: tokens.access_token,
         }),
       });
       const data = await response.json();

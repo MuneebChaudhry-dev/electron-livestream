@@ -4,4 +4,4 @@ node_modules
 app
 dist
 renderer/.env.local
-renderer/.env.local
+main/ffmpeg
