@@ -1,17 +1,16 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 
-import { ChildProcess, spawn } from 'child_process';
+import { spawn } from 'child_process';
 
 import { Server } from 'socket.io';
-import { ffmpeg2, youtubeSettings, inputSettings } from './helpers/ffmpeg';
-
-console.log(ffmpeg2);
+import { youtubeSettings, inputSettings } from './helpers/ffmpeg';
+import path from 'path';
 
 const app = express();
 let streamDetails = {
-  url: 'rtmp://x.rtmp.youtube.com/live2',
-  key: 'zkja-majm-btv1-7vxj-amer',
+  url: '',
+  key: '',
 };
 app.use(cors());
 app.use(express.json({ limit: '200mb' }));
@@ -33,12 +32,14 @@ app.post('/api/update-stream-details', (req: Request, res: Response) => {
   res.status(200).json({ message: 'Stream details updated successfully' });
   console.log(streamDetails);
 });
+
 const PORT = process.env.PORT || 5100;
 const WS_PORT: number = Number(process.env.PORT) || 3100;
 app.listen(PORT, () => {
   console.log('Application started on port ', PORT);
 });
 console.log(WS_PORT);
+
 const io = new Server(WS_PORT, {
   /* options */
   cors: {
@@ -56,15 +57,9 @@ io.on('connection', (socket) => {
     youtubeSettings(youtubeDestinationUrl)
   );
 
-  // console.log(ffmpegInput)
-
-  // const ffmpeg = child_process.spawn(
-  //   'ffmpeg',
-  //   ffmpeg2(youtube, twitch, facebook)
-  // )
-
-  const ffmpeg = spawn('ffmpeg', ffmpegInput);
-
+  const ffmpegPath = path.join(__dirname, './ffmpeg/bin/ffmpeg.exe');
+  const ffmpeg = spawn(ffmpegPath, ffmpegInput);
+  console.log('ffmpeg', ffmpeg);
   // If FFmpeg stops for any reason, close the WebSocket connection.
   ffmpeg.on('close', (code: any, signal: any) => {
     console.log(
@@ -87,7 +82,7 @@ io.on('connection', (socket) => {
 
   // When data comes in from the WebSocket, write it to FFmpeg's STDIN.
   socket.on('message', (msg) => {
-    console.log('DATA', 'Streaming');
+    // console.log('DATA', 'Streaming');
     ffmpeg.stdin.write(msg);
   });
 
