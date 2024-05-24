@@ -59,7 +59,7 @@ io.on('connection', (socket) => {
 
   const ffmpegPath = path.join(__dirname, './ffmpeg/bin/ffmpeg.exe');
   const ffmpeg = spawn(ffmpegPath, ffmpegInput);
-  console.log('ffmpeg', ffmpeg);
+  // console.log('ffmpeg', ffmpeg);
   // If FFmpeg stops for any reason, close the WebSocket connection.
   ffmpeg.on('close', (code: any, signal: any) => {
     console.log(
@@ -82,7 +82,7 @@ io.on('connection', (socket) => {
 
   // When data comes in from the WebSocket, write it to FFmpeg's STDIN.
   socket.on('message', (msg) => {
-    // console.log('DATA', 'Streaming');
+    console.log('DATA', 'Streaming');
     ffmpeg.stdin.write(msg);
   });
 
