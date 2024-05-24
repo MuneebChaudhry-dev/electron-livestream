@@ -43,6 +43,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         },
         status: {
           privacyStatus: 'public',
+          selfDeclaredMadeForKids: true,
         },
       },
     });
