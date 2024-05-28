@@ -16,7 +16,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return;
   }
 
-  // Set the OAuth2 client credentials
   oauth2Client.setCredentials({
     access_token: accessToken,
     refresh_token: refresh_token,
@@ -25,20 +24,18 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     token_type: token_type,
   });
 
-  // Authenticate the YouTube API client with the OAuth2 credentials
   const youtube = google.youtube({
     version: 'v3',
     auth: oauth2Client,
   });
 
   try {
-    // Create a live broadcast
     const broadcastResponse = await youtube.liveBroadcasts.insert({
       part: ['snippet', 'status'],
       requestBody: {
         snippet: {
-          title: 'New Live Stream',
-          description: 'Live streaming via API',
+          title: `Electron Live Stream ${new Date().toString()}`,
+          description: 'Live streaming From Electron App',
           scheduledStartTime: new Date().toISOString(),
         },
         status: {
@@ -48,9 +45,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       },
     });
 
+    console.log('Broadcast Response:', broadcastResponse.data);
+
     const broadcastId = broadcastResponse.data.id;
 
-    // Create a live stream
     const streamResponse = await youtube.liveStreams.insert({
       part: ['snippet', 'cdn'],
       requestBody: {
@@ -67,21 +65,26 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       },
     });
 
+    console.log('Stream Response:', streamResponse.data);
+
     const streamId = streamResponse.data.id;
     const ingestionInfo = streamResponse.data.cdn.ingestionInfo;
 
-    // Bind the live broadcast to the live stream
-    await youtube.liveBroadcasts.bind({
+    const bindResponse = await youtube.liveBroadcasts.bind({
       part: ['id', 'snippet', 'contentDetails', 'status'],
       id: broadcastId,
       streamId: streamId,
     });
 
-    res.status(200).json({
-      broadcastId,
-      streamId,
-      ingestionInfo,
-    });
+    console.log('Bind Response:', bindResponse.data);
+
+    setTimeout(() => {
+      res.status(200).json({
+        broadcastId,
+        streamId,
+        ingestionInfo,
+      });
+    }, 10000); // 10-second delay
   } catch (error) {
     console.error('Error starting live stream:', error);
     res
