@@ -8,6 +8,7 @@ export default function HomePage() {
   const router = useRouter();
   const [tokens, setTokens] = useState(null);
   const [liveStreamInfo, setLiveStreamInfo] = useState(null);
+  const [isLive, setIsLive] = useState(false);
 
   useEffect(() => {
     const { tokens: tokensFromURL } = router.query;
@@ -58,10 +59,9 @@ export default function HomePage() {
       const data = await response.json();
 
       if (response.ok) {
-        console.log('Stream DAta', data);
+        console.log('Stream Data', data);
         setLiveStreamInfo(data);
         await fetch('http://localhost:5100/api/update-stream-details', {
-          // Update to match your Express server address
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -78,10 +78,10 @@ export default function HomePage() {
       }
     }
   };
+
   const goLive = async () => {
     if (liveStreamInfo) {
       const response = await fetch('/api/go-live', {
-        // Update to match your Express server address
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -90,11 +90,35 @@ export default function HomePage() {
           url: liveStreamInfo.ingestionInfo.ingestionAddress,
           key: liveStreamInfo.ingestionInfo.streamName,
           broadcastId: liveStreamInfo.broadcastId,
+          streamId: liveStreamInfo.streamId,
           accessToken: tokens.access_token,
         }),
       });
       const data = await response.json();
-      console.log('GO Live DAta', data);
+      console.log('GO Live Data', data);
+      if (response.ok) {
+        setIsLive(true);
+      }
+    }
+  };
+
+  const endStream = async () => {
+    if (liveStreamInfo) {
+      const response = await fetch('/api/end-stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          broadcastId: liveStreamInfo.broadcastId,
+          accessToken: tokens.access_token,
+        }),
+      });
+      const data = await response.json();
+      console.log('End Stream Data', data);
+      if (response.ok) {
+        setIsLive(false);
+      }
     }
   };
 
@@ -111,13 +135,19 @@ export default function HomePage() {
       </div>
       <div className='mt-1 w-full flex-wrap flex justify-center'>
         <button onClick={startLiveStream} disabled={!tokens}>
-          Start BroadCasting
+          Start Broadcasting
         </button>
       </div>
       <div className='mt-1 w-full flex-wrap flex justify-center'>
-        <button onClick={goLive} disabled={!tokens}>
-          Go Live!
-        </button>
+        {!isLive ? (
+          <button onClick={goLive} disabled={!tokens}>
+            Go Live!
+          </button>
+        ) : (
+          <button onClick={endStream} disabled={!tokens}>
+            End Stream
+          </button>
+        )}
       </div>
       <div>
         {liveStreamInfo && (
