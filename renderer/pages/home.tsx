@@ -14,7 +14,9 @@ export default function HomePage() {
     const { tokens: tokensFromURL } = router.query;
 
     if (tokensFromURL) {
-      const decodedTokens = JSON.parse(decodeURIComponent(tokensFromURL));
+      const decodedTokens = JSON.parse(
+        decodeURIComponent(tokensFromURL as any)
+      );
       sessionStorage.setItem('youtube_tokens', JSON.stringify(decodedTokens));
       setTokens(decodedTokens);
       router.replace('/home'); // Clean the URL
