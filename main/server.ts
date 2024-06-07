@@ -1,10 +1,12 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 
-import { spawn } from 'child_process';
+import { execFile } from 'child_process';
 import { Server } from 'socket.io';
 import { youtubeSettings, inputSettings } from './helpers/ffmpeg';
 import ffmpegStatic from 'ffmpeg-static';
+import path from 'path';
+import fs from 'fs';
 
 const app = express();
 let streamDetails = {
@@ -54,28 +56,47 @@ io.on('connection', (socket) => {
     youtubeSettings(youtubeDestinationUrl)
   );
 
-  const ffmpegProcess = spawn(ffmpegStatic, ffmpegArgs);
+  const ffmpegPath = path.resolve(ffmpegStatic);
+  console.log('Resolved FFMPEG PATH:', ffmpegPath);
 
-  console.log('FFMPEG PATH', ffmpegStatic);
-  ffmpegProcess.on('close', (code, signal) => {
-    console.log(`FFmpeg process closed, code ${code}, signal ${signal}`);
-  });
+  // Check if the ffmpeg binary is accessible and executable
+  fs.access(ffmpegPath, fs.constants.X_OK, (err) => {
+    if (err) {
+      console.error('FFmpeg binary is not accessible or not executable:', err);
+      return;
+    } else {
+      console.log('FFmpeg binary is accessible and executable.');
 
-  ffmpegProcess.stdin.on('error', (e) => {
-    console.log('FFmpeg STDIN Error', e);
-  });
+      const ffmpegProcess = execFile(
+        ffmpegPath,
+        ffmpegArgs,
+        (error, stdout, stderr) => {
+          if (error) {
+            console.error('FFmpeg execFile error:', error);
+            return;
+          }
+          console.log('FFmpeg stdout:', stdout);
+          console.log('FFmpeg stderr:', stderr);
+        }
+      );
 
-  ffmpegProcess.stderr.on('data', (data) => {
-    console.log('FFmpeg STDERR:', data.toString());
-  });
+      ffmpegProcess.on('error', (err) => {
+        console.error('Failed to start FFmpeg process:', err);
+      });
 
-  socket.on('message', (msg) => {
-    console.log('DATA', 'Streaming');
-    ffmpegProcess.stdin.write(msg);
-  });
+      ffmpegProcess.on('close', (code, signal) => {
+        console.log(`FFmpeg process closed, code ${code}, signal ${signal}`);
+      });
 
-  socket.conn.on('close', (e) => {
-    console.log('kill: SIGINT');
-    ffmpegProcess.kill('SIGINT');
+      socket.on('message', (msg) => {
+        console.log('DATA', 'Streaming');
+        ffmpegProcess.stdin.write(msg);
+      });
+
+      socket.conn.on('close', (e) => {
+        console.log('kill: SIGINT');
+        ffmpegProcess.kill('SIGINT');
+      });
+    }
   });
 });

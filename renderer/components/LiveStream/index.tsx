@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 
-import { HiOutlineCamera } from 'react-icons/hi';
-
 function LiveStreamComponent() {
   const videoRef = useRef<HTMLVideoElement>();
   let socket = io('ws://localhost:3100', {
@@ -66,9 +64,9 @@ function LiveStreamComponent() {
           height={600}
           className='video-container'
           ref={videoRef}
+          autoPlay
           playsInline
           muted={true}
-          autoPlay
         />
         <button
           className=' border-1 border-red-300 rounded bg-gray-50 text-gray-900 mt-10'
