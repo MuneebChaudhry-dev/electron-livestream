@@ -45,8 +45,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       },
     });
 
-    console.log('Broadcast Response:', broadcastResponse.data);
-
     const broadcastId = broadcastResponse.data.id;
 
     const streamResponse = await youtube.liveStreams.insert({
@@ -65,8 +63,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       },
     });
 
-    console.log('Stream Response:', streamResponse.data);
-
     const streamId = streamResponse.data.id;
     const ingestionInfo = streamResponse.data.cdn.ingestionInfo;
 
@@ -76,15 +72,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       streamId: streamId,
     });
 
-    console.log('Bind Response:', bindResponse.data);
-
     setTimeout(() => {
       res.status(200).json({
         broadcastId,
         streamId,
         ingestionInfo,
       });
-    }, 10000); // 10-second delay
+    }, 10000);
   } catch (error) {
     console.error('Error starting live stream:', error);
     res

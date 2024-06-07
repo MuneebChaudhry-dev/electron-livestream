@@ -5,3 +5,5 @@ app
 dist
 renderer/.env.local
 main/ffmpeg
+yarn.lock
+package-lock.json

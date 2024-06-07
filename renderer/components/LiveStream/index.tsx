@@ -66,9 +66,9 @@ function LiveStreamComponent() {
           height={600}
           className='video-container'
           ref={videoRef}
-          autoPlay
           playsInline
           muted={true}
+          autoPlay
         />
         <button
           className=' border-1 border-red-300 rounded bg-gray-50 text-gray-900 mt-10'
